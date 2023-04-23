@@ -19,6 +19,7 @@ import miniauthorizer.vr.api.domain.CardDTO;
 import miniauthorizer.vr.api.domain.CardRepository;
 import miniauthorizer.vr.api.domain.DetalhesCartaoDTO;
 import miniauthorizer.vr.api.domain.TransactionDTO;
+import miniauthorizer.vr.api.service.MiniAuthorizerService;
 
 @RestController
 @RequestMapping("cartoes")
@@ -27,8 +28,8 @@ public class MiniAuthorizerController {
 	@Autowired
 	private CardRepository repository;
 	
-	//@Autowired
-	//private CardService service;
+	@Autowired
+	private MiniAuthorizerService service;
 	
 	DetalhesCartaoDTO detalhesDTO;
 	
@@ -62,12 +63,21 @@ public class MiniAuthorizerController {
 	@Transactional
 	public ResponseEntity<DetalhesCartaoDTO> transaction(@RequestBody TransactionDTO transactionDTO, UriComponentsBuilder uriBuilder) {
 		
-		Card cartao = repository.findByNumeroCartao(transactionDTO.numeroCartao());
+		DetalhesCartaoDTO detalhesDTO = service.validateTransactionOK(transactionDTO);
 		
-		cartao.setSaldo(cartao.getSaldo().subtract(new BigDecimal(transactionDTO.valor())));
-		var uri = uriBuilder.path("/cartoes/{numeroCartao}").buildAndExpand(cartao.getNumeroCartao()).toUri();
-		detalhesDTO = new DetalhesCartaoDTO(cartao.getNumeroCartao(), cartao.getSaldo(), "OK");
-		return ResponseEntity.created(uri).body(detalhesDTO);
+		//Card cartao = repository.findByNumeroCartao(transactionDTO.numeroCartao());
+		
+		
+		
+		//cartao.setSaldo(cartao.getSaldo().subtract(new BigDecimal(transactionDTO.valor())));
+		if (detalhesDTO.mensagem().equals("OK")) {
+			var uri = uriBuilder.path("/cartoes/{numeroCartao}").buildAndExpand(detalhesDTO.numeroCartao()).toUri();
+			//detalhesDTO = new DetalhesCartaoDTO(cartao.getNumeroCartao(), cartao.getSaldo(), "OK");
+			return ResponseEntity.created(uri).body(detalhesDTO);
+		} else {
+			return ResponseEntity.unprocessableEntity().body(detalhesDTO);
+		}
+		
 	}
 
 }
