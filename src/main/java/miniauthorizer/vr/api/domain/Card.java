@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.PositiveOrZero;
 
 @Table(name = "Card")
 @Entity(name = "Card")
@@ -27,6 +28,7 @@ public class Card {
     private Long id;
 	private String numeroCartao;
 	private String senha;
+	@PositiveOrZero
 	private BigDecimal saldo;
 	
 	public Long getId() {

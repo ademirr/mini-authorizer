@@ -61,23 +61,8 @@ public class MiniAuthorizerController {
 	
 	@PostMapping(value = "/transacoes")
 	@Transactional
-	public ResponseEntity<DetalhesCartaoDTO> transaction(@RequestBody TransactionDTO transactionDTO, UriComponentsBuilder uriBuilder) {
-		
-		DetalhesCartaoDTO detalhesDTO = service.validateTransactionOK(transactionDTO);
-		
-		//Card cartao = repository.findByNumeroCartao(transactionDTO.numeroCartao());
-		
-		
-		
-		//cartao.setSaldo(cartao.getSaldo().subtract(new BigDecimal(transactionDTO.valor())));
-		if (detalhesDTO.mensagem().equals("OK")) {
-			var uri = uriBuilder.path("/cartoes/{numeroCartao}").buildAndExpand(detalhesDTO.numeroCartao()).toUri();
-			//detalhesDTO = new DetalhesCartaoDTO(cartao.getNumeroCartao(), cartao.getSaldo(), "OK");
-			return ResponseEntity.created(uri).body(detalhesDTO);
-		} else {
-			return ResponseEntity.unprocessableEntity().body(detalhesDTO);
-		}
-		
+	public ResponseEntity<String> transaction(@RequestBody TransactionDTO transactionDTO, UriComponentsBuilder uriBuilder) {
+		Card card = service.executeTransaction(transactionDTO);
+		return ResponseEntity.created(uriBuilder.path("/cartoes/{numeroCartao}").buildAndExpand(card.getNumeroCartao()).toUri()).body("OK");
 	}
-
 }

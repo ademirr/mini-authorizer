@@ -1,7 +1,8 @@
 package miniauthorizer.vr.api.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -19,8 +20,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 
 import miniauthorizer.vr.api.domain.Card;
 import miniauthorizer.vr.api.domain.CardRepository;
-import miniauthorizer.vr.api.domain.DetalhesCartaoDTO;
 import miniauthorizer.vr.api.domain.TransactionDTO;
+import miniauthorizer.vr.api.infra.CardNotFoundException;
+import miniauthorizer.vr.api.infra.InvalidPasswordException;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -49,32 +51,30 @@ class MiniAuthorizerServiceTest {
 	void validateTransactionOK() {
 		TransactionDTO dto = new TransactionDTO("1234567890", "1234", "100.00");
 		when(repository.findByNumeroCartao(any())).thenReturn(cards.get(dto.numeroCartao()));
-		DetalhesCartaoDTO cardDetails = service.validateCard(dto);
-		assertEquals(cardDetails.saldo(), new BigDecimal("400.00").setScale(2, RoundingMode.UP));
+		Card card = service.executeTransaction(dto);
+		assertEquals(card.getSaldo(), new BigDecimal("400.00").setScale(2, RoundingMode.UP));
 	}
 	
 	@Test
 	void validateTransactionCardNumberNotOK() {
 		TransactionDTO dto = new TransactionDTO("123456789", "1234", "100.00");
 		when(repository.findByNumeroCartao(any())).thenReturn(cards.get(dto.numeroCartao()));
-		DetalhesCartaoDTO cardDetails = service.validateCard(dto);
-		assertNull(cardDetails.numeroCartao());
+		assertThrows(CardNotFoundException.class, () -> service.executeTransaction(dto));
 	}
 	
 	@Test
 	void validateTransactionPasswordNotOK() {
 		TransactionDTO dto = new TransactionDTO("1234567891", "123", "100.00");
 		when(repository.findByNumeroCartao(any())).thenReturn(cards.get(dto.numeroCartao()));
-		DetalhesCartaoDTO cardDetails = service.validateCard(dto);
-		assertEquals(cardDetails.mensagem(), "SENHA_INVALIDA");
+		assertThrows(InvalidPasswordException.class, () -> service.executeTransaction(dto));
 	}
 	
 	@Test
 	void validateTransactionBalanceNotOK() {
 		TransactionDTO dto = new TransactionDTO("1234567892", "1236", "500.01");
 		when(repository.findByNumeroCartao(any())).thenReturn(cards.get(dto.numeroCartao()));
-		DetalhesCartaoDTO cardDetails = service.validateCard(dto);
-		assertEquals(cardDetails.mensagem(), "SALDO_INSUFICIENTE");
+		Card card = service.executeTransaction(dto);
+		assertTrue(card.getSaldo().doubleValue() < 0);
 	}
 
 }
