@@ -14,11 +14,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import jakarta.validation.Valid;
 import miniauthorizer.vr.api.domain.Card;
 import miniauthorizer.vr.api.domain.CardDTO;
-import miniauthorizer.vr.api.domain.CardRepository;
-import miniauthorizer.vr.api.domain.DetalhesCartaoDTO;
+import miniauthorizer.vr.api.domain.CardDTOResponse;
 import miniauthorizer.vr.api.domain.TransactionDTO;
+import miniauthorizer.vr.api.infra.CardNotFoundException;
 import miniauthorizer.vr.api.service.MiniAuthorizerService;
 
 @RestController
@@ -26,42 +27,34 @@ import miniauthorizer.vr.api.service.MiniAuthorizerService;
 public class MiniAuthorizerController {
 	
 	@Autowired
-	private CardRepository repository;
-	
-	@Autowired
 	private MiniAuthorizerService service;
 	
-	DetalhesCartaoDTO detalhesDTO;
-	
 	@PostMapping
-	public ResponseEntity<DetalhesCartaoDTO> createCard(@RequestBody CardDTO cardDTO, UriComponentsBuilder uriBuilder) {
-		
-		Card cartao = new Card(cardDTO.numeroCartao(), cardDTO.senha(), new BigDecimal(500.00));
-		
+	public ResponseEntity<CardDTOResponse> createCard(@RequestBody @Valid CardDTO cardDTO, UriComponentsBuilder uriBuilder) {
 		try {
-			repository.save(cartao);
+			service.createCard(cardDTO.numeroCartao(), cardDTO.senha());
 			var uri = uriBuilder.path("/cartoes/{numeroCartao}").buildAndExpand(cardDTO.numeroCartao()).toUri();
-			detalhesDTO = new DetalhesCartaoDTO(cartao.getNumeroCartao(), cartao.getSaldo(), "Cartão cadastrado com sucesso!");
-			return ResponseEntity.created(uri).body(detalhesDTO);
+			return ResponseEntity.created(uri).body(new CardDTOResponse(cardDTO.senha(), cardDTO.numeroCartao()));
 		} catch (DataIntegrityViolationException e) {
-			detalhesDTO = new DetalhesCartaoDTO(cartao.getNumeroCartao(), cartao.getSaldo(), "Esse cartão já estava cadastrado em nosso sistema!");
-			return ResponseEntity.unprocessableEntity().body(detalhesDTO);
+			return ResponseEntity.unprocessableEntity().body(new CardDTOResponse(cardDTO.senha(), cardDTO.numeroCartao()));
 		}
 	}
 	
 	@GetMapping("/{numeroCartao}")
-	public ResponseEntity<BigDecimal> consultarSaldo(@PathVariable String numeroCartao) {
-		Card cartao = repository.findByNumeroCartao(numeroCartao);
-		if (cartao == null) {
-			System.out.println("Cartão não cadastrado!");
-			return ResponseEntity.notFound().build();
+	public ResponseEntity<BigDecimal> consultBalance(@PathVariable String numeroCartao) throws CardNotFoundException {
+		Card cartao = service.findCard(numeroCartao);
+		BigDecimal saldo = null;
+		try {
+			saldo = cartao.getSaldo();
+		} catch (NullPointerException e) {
+			throw new CardNotFoundException();
 		}
-		return ResponseEntity.ok(cartao.getSaldo());
+		return ResponseEntity.ok(saldo);
 	}
 	
 	@PostMapping(value = "/transacoes")
 	@Transactional
-	public ResponseEntity<String> transaction(@RequestBody TransactionDTO transactionDTO, UriComponentsBuilder uriBuilder) {
+	public ResponseEntity<String> transaction(@RequestBody @Valid TransactionDTO transactionDTO, UriComponentsBuilder uriBuilder) {
 		Card card = service.executeTransaction(transactionDTO);
 		return ResponseEntity.created(uriBuilder.path("/cartoes/{numeroCartao}").buildAndExpand(card.getNumeroCartao()).toUri()).body("OK");
 	}

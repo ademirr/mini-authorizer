@@ -1,7 +1,7 @@
 package miniauthorizer.vr.api.domain;
 
-import java.math.BigDecimal;
+import jakarta.validation.constraints.NotBlank;
 
-public record CardDTO(String numeroCartao, String senha, BigDecimal saldo, String mensagem) {
+public record CardDTO(@NotBlank String numeroCartao, @NotBlank String senha) {
 
 }
