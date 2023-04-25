@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -47,6 +48,7 @@ class MiniAuthorizerServiceTest {
 	}
 	
 	@Test
+	@DisplayName("Deveria concluir a transação com sucesso, subtraindo o valor da transação do saldo do cartão")
 	void validateTransactionOK() {
 		TransactionDTO dto = new TransactionDTO("1234567890", "1234", new BigDecimal("100.00"));
 		when(repository.findByNumeroCartao(any())).thenReturn(cards.get(dto.numeroCartao()));
@@ -55,6 +57,7 @@ class MiniAuthorizerServiceTest {
 	}
 	
 	@Test
+	@DisplayName("Deveria lançar exceção de cartão não encontrado")
 	void validateTransactionCardNumberNotOK() {
 		TransactionDTO dto = new TransactionDTO("123456789", "1234", new BigDecimal("100.00"));
 		when(repository.findByNumeroCartao(any())).thenReturn(cards.get(dto.numeroCartao()));
@@ -62,6 +65,7 @@ class MiniAuthorizerServiceTest {
 	}
 	
 	@Test
+	@DisplayName("Deveria lançar exceção de senha inválida")
 	void validateTransactionPasswordNotOK() {
 		TransactionDTO dto = new TransactionDTO("1234567891", "123", new BigDecimal("100.00"));
 		when(repository.findByNumeroCartao(any())).thenReturn(cards.get(dto.numeroCartao()));

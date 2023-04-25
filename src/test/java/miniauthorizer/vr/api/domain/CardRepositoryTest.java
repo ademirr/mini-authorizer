@@ -26,10 +26,15 @@ class CardRepositoryTest {
 	private TestEntityManager em;
 	
 	@Test
-	void test() {
+	void consultaCardOK() {
 		saveCard("1234567890", "1234", new BigDecimal("500.00").setScale(2, RoundingMode.UP));
 		Card card = repository.findByNumeroCartao("1234567890");
 		assertEquals("1234567890", card.getNumeroCartao());
+	}
+	
+	@Test
+	void consultaCardNotOK() {
+		saveCard("1234567890", "1234", new BigDecimal("500.00").setScale(2, RoundingMode.UP));
 		Card card2 = repository.findByNumeroCartao("1234567891");
 		assertNull(card2);
 	}
