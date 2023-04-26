@@ -63,7 +63,7 @@ public class MiniAuthorizerService {
 	public void validatePassword(String senhaCartao, String senhaDTO){
 		Optional<String> senhaEntrada = Optional.of(senhaDTO);
 		Optional<String> emptyPassword = null;
-			emptyPassword = senhaEntrada.filter(g -> g.equals(senhaCartao));
+		emptyPassword = senhaEntrada.filter(g -> g.equals(senhaCartao));
 		try {
 			emptyPassword.orElseThrow();
 		} catch (NoSuchElementException e) {
