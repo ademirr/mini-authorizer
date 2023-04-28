@@ -26,10 +26,10 @@ import miniauthorizer.vr.api.infra.TransactionCardNotFoundException;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class MiniAuthorizerServiceTest {
+class TransactionServiceTest {
 	
 	@Autowired
-	private MiniAuthorizerService service;
+	private TransactionService transactionService;
 	
 	@MockBean
     private CardRepository repository;
@@ -52,7 +52,7 @@ class MiniAuthorizerServiceTest {
 	void validateTransactionOK() {
 		TransactionDTO dto = new TransactionDTO("1234567890", "1234", new BigDecimal("100.00"));
 		when(repository.findByNumeroCartao(any())).thenReturn(cards.get(dto.numeroCartao()));
-		Card card = service.executeTransaction(dto);
+		Card card = transactionService.executeTransaction(dto);
 		assertEquals(card.getSaldo(), new BigDecimal("400.00").setScale(2, RoundingMode.UP));
 	}
 	
@@ -61,7 +61,7 @@ class MiniAuthorizerServiceTest {
 	void validateTransactionCardNumberNotOK() {
 		TransactionDTO dto = new TransactionDTO("123456789", "1234", new BigDecimal("100.00"));
 		when(repository.findByNumeroCartao(any())).thenReturn(cards.get(dto.numeroCartao()));
-		assertThrows(TransactionCardNotFoundException.class, () -> service.executeTransaction(dto));
+		assertThrows(TransactionCardNotFoundException.class, () -> transactionService.executeTransaction(dto));
 	}
 	
 	@Test
@@ -69,7 +69,7 @@ class MiniAuthorizerServiceTest {
 	void validateTransactionPasswordNotOK() {
 		TransactionDTO dto = new TransactionDTO("1234567891", "123", new BigDecimal("100.00"));
 		when(repository.findByNumeroCartao(any())).thenReturn(cards.get(dto.numeroCartao()));
-		assertThrows(InvalidPasswordException.class, () -> service.executeTransaction(dto));
+		assertThrows(InvalidPasswordException.class, () -> transactionService.executeTransaction(dto));
 	}
 
 }

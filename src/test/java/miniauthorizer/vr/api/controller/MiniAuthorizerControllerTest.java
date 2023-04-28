@@ -28,7 +28,8 @@ import miniauthorizer.vr.api.domain.CardDTOResponse;
 import miniauthorizer.vr.api.domain.TransactionDTO;
 import miniauthorizer.vr.api.infra.InvalidPasswordException;
 import miniauthorizer.vr.api.infra.TransactionCardNotFoundException;
-import miniauthorizer.vr.api.service.MiniAuthorizerService;
+import miniauthorizer.vr.api.service.CardService;
+import miniauthorizer.vr.api.service.TransactionService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -54,7 +55,10 @@ class MiniAuthorizerControllerTest {
     private JacksonTester<TransactionDTO> transactionDTOJson;
 	
 	@MockBean
-	private MiniAuthorizerService service;
+	private CardService cardService;
+	
+	@MockBean
+	private TransactionService transactionService;
 	
 	private static final BigDecimal SALDO_INICIAL = new BigDecimal("500.00");
 
@@ -74,7 +78,7 @@ class MiniAuthorizerControllerTest {
                 "",
                 "1234");
 
-        when(service.createCard(any(), any())).thenReturn(new Card(cardDTO.numeroCartao(), cardDTO.senha(), SALDO_INICIAL));
+        when(cardService.createCard(any(), any())).thenReturn(new Card(cardDTO.numeroCartao(), cardDTO.senha(), SALDO_INICIAL));
 
         var response = mvc
                 .perform(post("/cartoes")
@@ -92,7 +96,7 @@ class MiniAuthorizerControllerTest {
                 "12345",
                 "1234");
 
-        when(service.createCard(any(), any())).thenThrow(new DataIntegrityViolationException(""));
+        when(cardService.createCard(any(), any())).thenThrow(new DataIntegrityViolationException(""));
 
         var response = mvc
                 .perform(post("/cartoes")
@@ -117,7 +121,7 @@ class MiniAuthorizerControllerTest {
                 "12345",
                 "1234");
 
-        when(service.createCard(any(), any())).thenReturn(new Card(cardDTO.numeroCartao(), cardDTO.senha(), SALDO_INICIAL));
+        when(cardService.createCard(any(), any())).thenReturn(new Card(cardDTO.numeroCartao(), cardDTO.senha(), SALDO_INICIAL));
 
         var response = mvc
                 .perform(post("/cartoes")
@@ -138,7 +142,7 @@ class MiniAuthorizerControllerTest {
 	@Test
 	@DisplayName("Deveria devolver codigo http 200 quando informacoes estao validas")
 	void testConsultBalance() throws Exception {
-		when(service.findCard(any())).thenReturn(new Card("12345", "1234", new BigDecimal("100.00")));
+		when(cardService.findCard(any())).thenReturn(new Card("12345", "1234", new BigDecimal("100.00")));
 		
 		var response = mvc
                 .perform(get("/cartoes/numeroCartao")
@@ -153,9 +157,9 @@ class MiniAuthorizerControllerTest {
 	}
 
 	@Test
-	@DisplayName("Deveria devolver codigo http 404 quando cartao já existente")
+	@DisplayName("Deveria devolver codigo http 404 quando cartao inexistente")
 	void testConsultBalance2() throws Exception {
-		when(service.findCard(any())).thenReturn(null);
+		when(cardService.findCard(any())).thenReturn(null);
 		
 		var response = mvc
                 .perform(get("/cartoes/numeroCartao")
@@ -174,12 +178,12 @@ class MiniAuthorizerControllerTest {
                 "1234",
                 new BigDecimal("100.00"));
 		
-		when(service.findCard(any())).thenReturn(new Card("12345", "1234", new BigDecimal("200.00")));
+		when(cardService.findCard(any())).thenReturn(new Card("12345", "1234", new BigDecimal("200.00")));
 
-		when(service.executeTransaction(any())).thenReturn(new Card(transactionDTO.numeroCartao(), transactionDTO.senha(), new BigDecimal("300.00")));
+		when(transactionService.executeTransaction(any())).thenReturn(new Card(transactionDTO.numeroCartao(), transactionDTO.senhaCartao(), new BigDecimal("300.00")));
 
         var response = mvc
-                .perform(post("/cartoes/transacoes")
+                .perform(post("/transacoes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(transactionDTOJson.write(transactionDTO).getJson()))
                 .andReturn().getResponse();
@@ -196,12 +200,10 @@ class MiniAuthorizerControllerTest {
                 "1234",
                 new BigDecimal("100.00"));
 		
-		when(service.findCard(any())).thenReturn(new Card("12345", "1234", new BigDecimal("200.00")));
-		
-		when(service.executeTransaction(any())).thenThrow(new TransactionCardNotFoundException());
+		when(transactionService.executeTransaction(any())).thenThrow(new TransactionCardNotFoundException());
 
         var response = mvc
-                .perform(post("/cartoes/transacoes")
+                .perform(post("/transacoes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(transactionDTOJson.write(transactionDTO).getJson()))
                 .andReturn().getResponse();
@@ -211,19 +213,17 @@ class MiniAuthorizerControllerTest {
 	}
 
 	@Test
-	@DisplayName("Deveria devolver codigo http 422 quando cartão inexistente")
+	@DisplayName("Deveria devolver codigo http 422 quando senha inválida")
 	void testTransaction3() throws Exception {
 		var transactionDTO = new TransactionDTO(
                 "12345",
                 "1234",
                 new BigDecimal("100.00"));
 		
-		when(service.findCard(any())).thenReturn(new Card("12345", "1234", new BigDecimal("200.00")));
-		
-		when(service.executeTransaction(any())).thenThrow(new InvalidPasswordException());
+		when(transactionService.executeTransaction(any())).thenThrow(new InvalidPasswordException());
 
         var response = mvc
-                .perform(post("/cartoes/transacoes")
+                .perform(post("/transacoes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(transactionDTOJson.write(transactionDTO).getJson()))
                 .andReturn().getResponse();
@@ -240,12 +240,10 @@ class MiniAuthorizerControllerTest {
                 "1234",
                 new BigDecimal("100.00"));
 		
-		when(service.findCard(any())).thenReturn(new Card("12345", "1234", new BigDecimal("200.00")));
-		
-		when(service.executeTransaction(any())).thenThrow(new ConstraintViolationException(null));
+		when(transactionService.executeTransaction(any())).thenThrow(new ConstraintViolationException(null));
 
         var response = mvc
-                .perform(post("/cartoes/transacoes")
+                .perform(post("/transacoes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(transactionDTOJson.write(transactionDTO).getJson()))
                 .andReturn().getResponse();
